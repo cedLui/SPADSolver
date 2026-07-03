@@ -151,10 +151,25 @@ inline double gamma_high_energy(double al_frac, double energy) {
 }
 
 inline double gamma(double al_frac, double energy) {
-    if (energy > 4.0) {
-        return gamma_high_energy(al_frac, energy);
+    const double mole_fracs[6] = {0, 0.11, 0.20, 0.38, 0.5, 0.86};
+    const double high_energy[5] = {3.75, 3.875, 4.125, 4.625, 5.5};
+
+    for (int i = 0; i < 5; ++i) {
+        if (mole_fracs[i] <= al_frac && al_frac <= mole_fracs[i + 1]) {
+            if (energy <= high_energy[i]) {
+                return gamma_low_energy(al_frac, energy);
+            }
+            return gamma_high_energy(al_frac, energy);
+        }
     }
-    return gamma_low_energy(al_frac, energy);
+    if (energy <= high_energy[4]) {
+        return gamma_low_energy(al_frac, energy);
+    }
+    return gamma_high_energy(al_frac, energy);
+}
+
+inline double gamma_difference(double al_frac, double energy) {
+    return gamma_high_energy(al_frac, energy) - gamma_low_energy(al_frac, energy);
 }
 
 }  // namespace reference

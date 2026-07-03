@@ -148,11 +148,27 @@ double gammaHighEnergy(double AlFrac, double Energy){
     return 0;
 }
 
+
+//How gamma should work: Default to low energy and search between mole fractions. Need "High Energy" bounds to be different for each mole fraction segment.
 double gamma(double AlFrac, double Energy){
-    if (Energy > 4){
-        return gammaHighEnergy(AlFrac, Energy);
+    const double mole_fracs[6] = {0, 0.11, 0.20, 0.38, 0.5, 0.86};
+    const double high_energy[5] = {3.75, 3.875, 4.125, 4.625, 5.5};
+    for (int i = 0; i < 5; ++i) {
+        if (mole_fracs[i] <= AlFrac && AlFrac <= mole_fracs[i + 1]) {
+            if (Energy <= high_energy[i]) {
+                return gammaLowEnergy(AlFrac, Energy);
+            }
+            return gammaHighEnergy(AlFrac, Energy);
+        }
     }
-    else{
+    if (Energy <= high_energy[4]){
         return gammaLowEnergy(AlFrac, Energy);
     }
+    else{
+        return gammaHighEnergy(AlFrac, Energy);
+    }
+}
+
+double gammaDifference(double AlFrac, double Energy){
+    return gammaHighEnergy(AlFrac, Energy) - gammaLowEnergy(AlFrac, Energy);
 }
