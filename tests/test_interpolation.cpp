@@ -1,5 +1,5 @@
+#include <algorithm>
 #include <cmath>
-#include <iomanip>
 #include <iostream>
 
 #include "interpolation.h"
@@ -13,27 +13,40 @@ constexpr double k_temp = 298.0;   // K
 constexpr double k_tol = 1e-3;
 constexpr double k_gamma_tol = 1.0;
 
-struct GammaIntervalCase {
-    double al_frac_low;
-    double al_frac_high;
-    double al_frac;
-    double energy;
-};
+constexpr double k_mole_fracs[6] = {0.0, 0.11, 0.20, 0.38, 0.5, 0.86};
+constexpr double k_sampled_energies[6][5] = {
+    {2.25, 3.125, 3.25, 3.5, 3.7},
+    {2.625, 3.25, 3.5, 3.7, 3.875},
+    {2.25, 3.0, 3.5, 3.875, 4.0},
+    {2.5, 3.5, 3.75, 4.125, 4.3},
+    {2.25, 3.5, 4.0, 4.625, 4.9},
+    {2.875, 4.0, 4.75, 5.5, 5.8}};
 
-constexpr GammaIntervalCase k_gamma_intervals[] = {
-    {0.0, 0.11, 0.05, 3.75},   {0.11, 0.20, 0.15, 3.875}, {0.20, 0.38, 0.29, 4.125},
-    {0.38, 0.50, 0.44, 4.625}, {0.50, 1.0,  0.65, 5.5},
-};
-constexpr GammaIntervalCase k_gamma_extrapolation = {0.86, 1.0, 0.9, 5.5};
+double mole_frac_midpoint(int interval_index) {
+    return (k_mole_fracs[interval_index] + k_mole_fracs[interval_index + 1]) / 2.0;
+}
 
-void print_gamma_difference(double al_frac, double energy, const char* label) {
-    const double low = gammaLowEnergy(al_frac, energy);
-    const double high = gammaHighEnergy(al_frac, energy);
-    const double diff = gammaDifference(al_frac, energy);
-    std::cout << std::fixed << std::setprecision(6) << label << '\n'
-              << "     al_frac         energy         gamma_low        gamma_high        difference\n"
-              << std::setw(12) << al_frac << std::setw(15) << energy << std::setw(18)
-              << low << std::setw(18) << high << std::setw(18) << diff << '\n';
+double energy_below_interval(int mole_index) {
+    const double candidate = k_sampled_energies[mole_index][0] - 0.15;
+    return std::max(candidate, 0.01);
+}
+
+double energy_interval_midpoint(int mole_index, int interval_index) {
+    return (k_sampled_energies[mole_index][interval_index] +
+            k_sampled_energies[mole_index][interval_index + 1]) /
+           2.0;
+}
+
+double energy_above_interval(int mole_index) {
+    return k_sampled_energies[mole_index][4] + 0.15;
+}
+
+void check_gamma(double al_frac, double energy) {
+    const double actual = gamma(al_frac, energy);
+    const double expected = reference::gamma(al_frac, energy);
+    CHECK_NEAR(actual, expected, k_gamma_tol);
+    CHECK_TRUE(actual > 0.0);
+    CHECK_TRUE(std::isfinite(actual));
 }
 
 void test_alpha_endpoints() {
@@ -86,176 +99,88 @@ void test_temperature_dependence() {
     CHECK_TRUE(std::abs(cold - hot) > 1.0);
 }
 
-void test_gamma_low_energy_at_sampled_energy() {
-    const double al_frac = 0.0;
-    const double energy = 3.125;
-    const double expected = reference::gamma_low_energy(al_frac, energy);
-    CHECK_NEAR(gammaLowEnergy(al_frac, energy), expected, k_gamma_tol);
+void test_gamma_at_mole_fraction_interval_midpoints() {
+    for (int i = 0; i < 5; ++i) {
+        const double al_frac = mole_frac_midpoint(i);
+        check_gamma(al_frac, energy_below_interval(i));
+        for (int j = 0; j < 4; ++j) {
+            check_gamma(al_frac, energy_interval_midpoint(i, j));
+            check_gamma(al_frac, k_sampled_energies[i][j]);
+            check_gamma(al_frac, k_sampled_energies[i][j + 1]);
+        }
+        check_gamma(al_frac, energy_above_interval(i));
+
+        check_gamma(al_frac, energy_below_interval(i + 1));
+        for (int j = 0; j < 4; ++j) {
+            check_gamma(al_frac, energy_interval_midpoint(i + 1, j));
+            check_gamma(al_frac, k_sampled_energies[i + 1][j]);
+            check_gamma(al_frac, k_sampled_energies[i + 1][j + 1]);
+        }
+        check_gamma(al_frac, energy_above_interval(i + 1));
+    }
 }
 
-void test_gamma_low_energy_interpolation_at_gan() {
-    const double al_frac = 0.0;
-    const double energy = 3.0;
-    const double expected = reference::gamma_low_energy(al_frac, energy);
-    CHECK_NEAR(gammaLowEnergy(al_frac, energy), expected, k_gamma_tol);
+void test_gamma_at_mole_fraction_endpoints() {
+    for (int i = 0; i < 6; ++i) {
+        const double al_frac = k_mole_fracs[i];
+        const int mole_interval = std::min(i, 4);
+        check_gamma(al_frac, energy_interval_midpoint(mole_interval, 1));
+        check_gamma(al_frac, energy_above_interval(mole_interval));
+    }
 }
 
-void test_gamma_low_energy_mole_fraction_interpolation() {
-    const double al_frac = 0.055;
-    const double energy = 3.0;
-    const double expected = reference::gamma_low_energy(al_frac, energy);
-    CHECK_NEAR(gammaLowEnergy(al_frac, energy), expected, k_gamma_tol);
-}
-
-void test_gamma_low_energy_extrapolation_above_highest_energy() {
-    const double al_frac = 0.0;
-    const double energy = 4.0;
-    const double expected = reference::gamma_low_energy(al_frac, energy);
-    CHECK_NEAR(gammaLowEnergy(al_frac, energy), expected, k_gamma_tol);
-}
-
-void test_gamma_low_energy_extrapolation_below_lowest_energy() {
-    const double al_frac = 0.0;
-    const double energy = 2.0;
-    const double expected = reference::gamma_low_energy(al_frac, energy);
-    CHECK_NEAR(gammaLowEnergy(al_frac, energy), expected, k_gamma_tol);
-}
-
-void test_gamma_low_energy_mid_interval() {
-    const double al_frac = 0.29;
-    const double energy = 3.6;
-    const double expected = reference::gamma_low_energy(al_frac, energy);
-    CHECK_NEAR(gammaLowEnergy(al_frac, energy), expected, k_gamma_tol);
-}
-
-void test_gamma_low_energy_is_positive() {
-    const double value = gammaLowEnergy(0.38, 3.75);
-    CHECK_TRUE(value > 0.0);
-    CHECK_TRUE(std::isfinite(value));
-}
-
-void test_gamma_high_energy_at_gan() {
-    const double al_frac = 0.0;
-    const double energy = 4.5;
-    const double expected = reference::gamma_high_energy(al_frac, energy);
-    CHECK_NEAR(gammaHighEnergy(al_frac, energy), expected, k_gamma_tol);
-}
-
-void test_gamma_high_energy_mid_al_fraction() {
-    const double al_frac = 0.3;
-    const double energy = 5.0;
-    const double expected = reference::gamma_high_energy(al_frac, energy);
-    CHECK_NEAR(gammaHighEnergy(al_frac, energy), expected, k_gamma_tol);
-}
-
-void test_gamma_high_energy_extrapolation_high_al_fraction() {
+void test_gamma_mole_fraction_extrapolation_above_range() {
     const double al_frac = 0.9;
-    const double energy = 4.5;
-    const double expected = reference::gamma_high_energy(al_frac, energy);
-    CHECK_NEAR(gammaHighEnergy(al_frac, energy), expected, k_gamma_tol);
-}
-
-void test_gamma_high_energy_is_positive() {
-    const double value = gammaHighEnergy(0.35, 4.8);
-    CHECK_TRUE(value > 0.0);
-    CHECK_TRUE(std::isfinite(value));
-}
-
-void test_gamma_selects_low_energy_per_interval() {
-    for (const auto& interval : k_gamma_intervals) {
-        const double energy = interval.energy - 0.1;
-        CHECK_NEAR(gamma(interval.al_frac, energy),
-                   gammaLowEnergy(interval.al_frac, energy), k_gamma_tol);
+    check_gamma(al_frac, energy_below_interval(4));
+    for (int j = 0; j < 4; ++j) {
+        check_gamma(al_frac, energy_interval_midpoint(4, j));
+        check_gamma(al_frac, energy_interval_midpoint(5, j));
     }
-    const double energy = k_gamma_extrapolation.energy - 0.1;
-    CHECK_NEAR(gamma(k_gamma_extrapolation.al_frac, energy),
-               gammaLowEnergy(k_gamma_extrapolation.al_frac, energy), k_gamma_tol);
+    check_gamma(al_frac, energy_above_interval(5));
 }
 
-void test_gamma_selects_high_energy_per_interval() {
-    for (const auto& interval : k_gamma_intervals) {
-        const double energy = interval.energy + 0.1;
-        CHECK_NEAR(gamma(interval.al_frac, energy),
-                   gammaHighEnergy(interval.al_frac, energy), k_gamma_tol);
-    }
-    const double energy = k_gamma_extrapolation.energy + 0.1;
-    CHECK_NEAR(gamma(k_gamma_extrapolation.al_frac, energy),
-               gammaHighEnergy(k_gamma_extrapolation.al_frac, energy), k_gamma_tol);
-}
+void test_gamma_energy_intervals_per_mole_fraction_index() {
+    for (int mole_index = 0; mole_index < 6; ++mole_index) {
+        const int mole_interval = std::min(mole_index, 4);
+        const double al_frac = mole_frac_midpoint(mole_interval);
 
-void test_gamma_uses_low_energy_at_threshold() {
-    for (const auto& interval : k_gamma_intervals) {
-        CHECK_NEAR(gamma(interval.al_frac, interval.energy),
-                   gammaLowEnergy(interval.al_frac, interval.energy), k_gamma_tol);
-    }
-    CHECK_NEAR(gamma(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy),
-               gammaLowEnergy(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy),
-               k_gamma_tol);
-}
-
-void test_gamma_dispatcher_matches_reference() {
-    const double cases[][2] = {{0.05, 3.0},  {0.15, 3.5},  {0.29, 3.6},
-                               {0.44, 4.0},  {0.65, 4.5},  {0.9, 5.0},
-                               {0.05, 3.85}, {0.15, 4.0},  {0.29, 4.25},
-                               {0.44, 4.75}, {0.65, 5.6},  {0.9, 5.6}};
-    for (const auto& point : cases) {
-        const double al_frac = point[0];
-        const double energy = point[1];
-        const double expected = reference::gamma(al_frac, energy);
-        CHECK_NEAR(gamma(al_frac, energy), expected, k_gamma_tol);
+        check_gamma(al_frac, energy_below_interval(mole_index));
+        for (int j = 0; j < 4; ++j) {
+            check_gamma(al_frac, energy_interval_midpoint(mole_index, j));
+            check_gamma(al_frac, k_sampled_energies[mole_index][j]);
+            check_gamma(al_frac, k_sampled_energies[mole_index][j + 1]);
+        }
+        check_gamma(al_frac, energy_above_interval(mole_index));
     }
 }
 
-void test_gamma_difference_matches_reference_in_intervals() {
-    for (const auto& interval : k_gamma_intervals) {
-        print_gamma_difference(interval.al_frac, interval.energy,
-                               "gammaDifference in interval (reference check):");
-        const double expected =
-            reference::gamma_difference(interval.al_frac, interval.energy);
-        CHECK_NEAR(gammaDifference(interval.al_frac, interval.energy), expected,
-                   k_gamma_tol);
+void test_gamma_all_mole_and_energy_interval_combinations() {
+    for (int mole_interval = 0; mole_interval < 5; ++mole_interval) {
+        const double al_frac = mole_frac_midpoint(mole_interval);
+        for (int lower_energy_interval = -1; lower_energy_interval <= 4;
+             ++lower_energy_interval) {
+            for (int upper_energy_interval = -1; upper_energy_interval <= 4;
+                 ++upper_energy_interval) {
+                const double lower_energy =
+                    lower_energy_interval < 0
+                        ? energy_below_interval(mole_interval)
+                        : lower_energy_interval == 4
+                              ? energy_above_interval(mole_interval)
+                              : energy_interval_midpoint(mole_interval,
+                                                           lower_energy_interval);
+                const double upper_energy =
+                    upper_energy_interval < 0
+                        ? energy_below_interval(mole_interval + 1)
+                        : upper_energy_interval == 4
+                              ? energy_above_interval(mole_interval + 1)
+                              : energy_interval_midpoint(mole_interval + 1,
+                                                           upper_energy_interval);
+                check_gamma(al_frac, lower_energy);
+                check_gamma(al_frac, upper_energy);
+                check_gamma(al_frac, (lower_energy + upper_energy) / 2.0);
+            }
+        }
     }
-    print_gamma_difference(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy,
-                           "gammaDifference in interval (reference check, extrapolation):");
-    const double expected = reference::gamma_difference(k_gamma_extrapolation.al_frac,
-                                                        k_gamma_extrapolation.energy);
-    CHECK_NEAR(gammaDifference(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy),
-               expected, k_gamma_tol);
-}
-
-void test_gamma_difference_at_energy_thresholds() {
-    for (const auto& interval : k_gamma_intervals) {
-        print_gamma_difference(interval.al_frac, interval.energy,
-                               "gammaDifference at energy threshold:");
-        const double expected =
-            reference::gamma_difference(interval.al_frac, interval.energy);
-        CHECK_NEAR(gammaDifference(interval.al_frac, interval.energy), expected,
-                   k_gamma_tol);
-    }
-    print_gamma_difference(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy,
-                           "gammaDifference at energy threshold (extrapolation):");
-    const double expected = reference::gamma_difference(
-        k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy);
-    CHECK_NEAR(gammaDifference(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy),
-               expected, k_gamma_tol);
-}
-
-void test_gamma_difference_equals_high_minus_low() {
-    for (const auto& interval : k_gamma_intervals) {
-        print_gamma_difference(interval.al_frac, interval.energy,
-                               "gammaDifference equals high - low:");
-        const double expected = gammaHighEnergy(interval.al_frac, interval.energy) -
-                                gammaLowEnergy(interval.al_frac, interval.energy);
-        CHECK_NEAR(gammaDifference(interval.al_frac, interval.energy), expected,
-                   k_gamma_tol);
-    }
-    print_gamma_difference(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy,
-                           "gammaDifference equals high - low (extrapolation):");
-    const double expected =
-        gammaHighEnergy(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy) -
-        gammaLowEnergy(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy);
-    CHECK_NEAR(gammaDifference(k_gamma_extrapolation.al_frac, k_gamma_extrapolation.energy),
-               expected, k_gamma_tol);
 }
 
 }  // namespace
@@ -269,24 +194,11 @@ int main() {
     test_beta_is_positive_for_typical_inputs();
     test_alpha_and_beta_differ();
     test_temperature_dependence();
-    test_gamma_low_energy_at_sampled_energy();
-    test_gamma_low_energy_interpolation_at_gan();
-    test_gamma_low_energy_mole_fraction_interpolation();
-    test_gamma_low_energy_extrapolation_above_highest_energy();
-    test_gamma_low_energy_extrapolation_below_lowest_energy();
-    test_gamma_low_energy_mid_interval();
-    test_gamma_low_energy_is_positive();
-    test_gamma_high_energy_at_gan();
-    test_gamma_high_energy_mid_al_fraction();
-    test_gamma_high_energy_extrapolation_high_al_fraction();
-    test_gamma_high_energy_is_positive();
-    test_gamma_selects_low_energy_per_interval();
-    test_gamma_selects_high_energy_per_interval();
-    test_gamma_uses_low_energy_at_threshold();
-    test_gamma_dispatcher_matches_reference();
-    test_gamma_difference_matches_reference_in_intervals();
-    test_gamma_difference_at_energy_thresholds();
-    test_gamma_difference_equals_high_minus_low();
+    test_gamma_at_mole_fraction_interval_midpoints();
+    test_gamma_at_mole_fraction_endpoints();
+    test_gamma_mole_fraction_extrapolation_above_range();
+    test_gamma_energy_intervals_per_mole_fraction_index();
+    test_gamma_all_mole_and_energy_interval_combinations();
 
     std::cout << test_count() << " checks, " << test_failures() << " failures\n";
     return test_failures() == 0 ? 0 : 1;
