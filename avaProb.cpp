@@ -5,7 +5,7 @@
 
 //These are the impact ionization coefficients for the material. Currently they are constant, but they can be changed to be functions of position
 double alphaX(double Pos){
-    return 0.2;
+    return 0.3;
 }
 
 double betaX(double Pos){
@@ -13,7 +13,8 @@ double betaX(double Pos){
 }
 
 //This function will return 2 vectors: 1st a descretized version of P_e, and the 2nd a descretized version of P_h
-std::vector<std::vector<double>> avaProb(double Width, double Steps, double P_h_0, double Accuracy){
+std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, double Accuracy){
+    int LoopCount = 0; //Counts how many iterations
     double StepSize = Width / Steps;
     double Guess = P_h_0; //Guess for P_h(0)
     double F = 0; //Value of P_h(Width)
@@ -47,12 +48,15 @@ std::vector<std::vector<double>> avaProb(double Width, double Steps, double P_h_
 
     //Start shooting method while loop
     while (Guess >= 0 && Guess <= 1 && Guess != previousGuess){ //All values should be between 0 and 1, since they are probabilities
+        LoopCount++; //Update the loop counter
+        
         P_h.at(0) = Guess; //Update guess for P_h(0)
         P_e.at(0) = 0; //Reinitialize guess for P_e(0)
         
         for (int i = 0 ; i<Steps; i++){
+            //Replace alpha/beta with alphaX(i*StepSize) later
             P_e.at(i+1) = P_e.at(i) + (1- P_e.at(i)) * alphaX(i*StepSize) * (P_e.at(i)+P_h.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
-            P_h.at(i+1) = P_h.at(i) - (1- P_h.at(i)) * betaX(i*StepSize) * (P_h.at(i)+P_e.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
+            P_h.at(i+1) = P_h.at(i) - (1- P_h.at(i)) * betaX(i*StepSize) * (i*StepSize) * (P_h.at(i)+P_e.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
         }
 
         if (std::abs(P_h.at(Steps)) < Accuracy){ //If P_h(Width) is close enough to 0, return the lists
@@ -90,7 +94,7 @@ std::vector<std::vector<double>> avaProb(double Width, double Steps, double P_h_
 }
 
 int main(){
-    std::vector<std::vector<double>> Pair = avaProb(5, 10000, 0.5, 0.00001);
+    std::vector<std::vector<double>> Pair = avaProb(5, 1000, 0.5, 0.0001);
     for (std::vector<double> P_x : Pair){
         std::cout << "List: " << std::endl;
         for (double Step : P_x){

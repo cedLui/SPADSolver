@@ -8,4 +8,4 @@ double alphaX(double Pos);
 
 double betaX(double Pos);
 
-std::vector<std::vector<double>> avaProb(double Width, double StepSize, double P_h_0);
+std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, double Accuracy);
