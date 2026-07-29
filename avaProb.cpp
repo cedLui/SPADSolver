@@ -4,31 +4,35 @@
 #include "avaProb.h"
 
 //These are the impact ionization coefficients for the material. They are taken from the Maeda paper
-double alphaX(double DeltaV, double Pos, double Width){ //In cm^-1. EField is in V/cm, T is in Kelvin
-    /*double a_n =  2.69e7; // cm^-1
+double alphaX(double EField, double T){ //In cm^-1. EField is in V/cm, T is in Kelvin
+    double a_n =  2.69e7; // cm^-1
     double b_n = 2.00e-3; // K^-1
     double c_n = 2.27e7; // V * cm^-1
     double d_n = 5.00e-4; // K^-1
 
-    return a_n*(1 + b_n*(T - 298)) * std::exp(-c_n*(1+d_n*(T - 298))/EField);*/
+    return a_n*(1 + b_n*(T - 298)) * std::exp(-c_n*(1+d_n*(T - 298))/EField);
+
+    /*This was to replicate Oldham's findings
     double V_break = 27.08;
-    double E = 2*(V_break + DeltaV)*(1 - Pos/Width)/Width; //Electric field profile for n+p junction
-    return 3.8 * 1000000 * std::exp(-1.75*1000000/E);
+    double E = (V_break + DeltaV)/Width; //Avg electric field (testing the constant case)
+    return 3.8 * 1000000 * std::exp(-1.75*1000000/E);*/
 }
 
-double betaX(double DeltaV, double Pos, double Width){ //In cm^-1. EField is in V/cm, T is in Kelvin
-    /*double a_p =  4.32e6; // cm^-1
+double betaX(double EField, double T){ //In cm^-1. EField is in V/cm, T is in Kelvin
+    double a_p =  4.32e6; // cm^-1
     double b_p = 2.00e-3; // K^-1
     double c_p = 1.31e7; // V * cm^-1
     double d_p = 9.00e-4; // K^-1
 
-    return a_p*(1 + b_p*(T - 298)) * std::exp(-c_p*(1+d_p*(T - 298))/EField);*/
+    return a_p*(1 + b_p*(T - 298)) * std::exp(-c_p*(1+d_p*(T - 298))/EField);
+
+    /*This was to replicate Oldham's findings
     double V_break = 27.08;
-    double E = 2*(V_break + DeltaV)*(1 - Pos/Width)/Width; //Electric field profile for n+p junction
-    return 2.25 * 10000000 * std::exp(-3.26 * 1000000/E);
+    double E = (V_break + DeltaV)/Width; //Avg electric field profile
+    return 2.25 * 10000000 * std::exp(-3.26 * 1000000/E);*/
 }
 
-std::vector<double> guess100(double Width, int Steps, double DeltaV){
+std::vector<double> guess100(double Width, int Steps, double EField){
     double StepSize = Width/Steps;
 
     std::vector<double> Guesses;
@@ -51,8 +55,8 @@ std::vector<double> guess100(double Width, int Steps, double DeltaV){
         P_h.at(0) = Guess; //Init guess
 
         for (int k = 0 ; k<Steps; k++){
-            P_e.at(k+1) = P_e.at(k) + (1- P_e.at(k)) * alphaX(DeltaV, StepSize*k, Width) * (P_e.at(k)+P_h.at(k)-P_e.at(k)*P_h.at(k)) * StepSize;
-            P_h.at(k+1) = P_h.at(k) - (1- P_h.at(k)) * betaX(DeltaV, StepSize*k, Width) * (P_h.at(k)+P_e.at(k)-P_e.at(k)*P_h.at(k)) * StepSize;
+            P_e.at(k+1) = P_e.at(k) + (1- P_e.at(k)) * alphaX(EField, 298) * (P_e.at(k)+P_h.at(k)-P_e.at(k)*P_h.at(k)) * StepSize;
+            P_h.at(k+1) = P_h.at(k) - (1- P_h.at(k)) * betaX(EField, 298) * (P_h.at(k)+P_e.at(k)-P_e.at(k)*P_h.at(k)) * StepSize;
         }
         F.push_back(P_h.at(Steps)); //Creates a vector of all P_h(W), which should be close to zero
     }
@@ -68,7 +72,7 @@ std::vector<double> guess100(double Width, int Steps, double DeltaV){
 }
 
 //This function will return 2 vectors: 1st a descretized version of P_e, and the 2nd a descretized version of P_h
-std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, double Accuracy, double DeltaV){
+std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, double Accuracy, double EField){
     int LoopCount = 0; //Counts how many iterations
     double StepSize = Width / Steps;
     double Guess = P_h_0; //Guess for P_h(0)
@@ -110,8 +114,8 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, 
         
         for (int i = 0 ; i<Steps; i++){
             //Replace alpha/beta with alphaX(i*StepSize) later
-            P_e.at(i+1) = P_e.at(i) + (1- P_e.at(i)) * alphaX(DeltaV, StepSize*i, Width) * (P_e.at(i)+P_h.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
-            P_h.at(i+1) = P_h.at(i) - (1- P_h.at(i)) * betaX(DeltaV, StepSize*i, Width) * (P_h.at(i)+P_e.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
+            P_e.at(i+1) = P_e.at(i) + (1- P_e.at(i)) * alphaX(EField, 298) * (P_e.at(i)+P_h.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
+            P_h.at(i+1) = P_h.at(i) - (1- P_h.at(i)) * betaX(EField, 298) * (P_h.at(i)+P_e.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
         }
 
         if (std::abs(P_h.at(Steps)) < Accuracy){ //If P_h(Width) is close enough to 0, return the lists
@@ -149,17 +153,17 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, 
 }
 
 int main(){
-    /*std::vector<std::vector<double>> Pair = avaProb(0.00005, 1000, 0.8, 0.0001);
+    std::vector<std::vector<double>> Pair = avaProb(0.0007, 1000, 0.8, 0.00001, 2000000);
     for (std::vector<double> P_x : Pair){
         std::cout << "List: " << std::endl;
         for (double Step : P_x){
             std::cout << Step << std::endl;
         }
     }
-    return 0;*/
+    return 0;
 
-    std::vector<double> F = guess100(0.00011, 10000, 2);
+    /*std::vector<double> F = guess100(0.0007, 10000, 2000000);
     for (double Fs: F){
         std::cout << Fs << std::endl;
-    }
+    }*/
 }
