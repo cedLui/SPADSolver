@@ -7,15 +7,18 @@ double lininterpolate(double x, double x1, double y1, double x2, double y2){retu
 
 //IONIZATION COEFFICIENTS
 
-double GaNionizationConsts(double front, double top, double Field){ return front * std::exp(-top/Field);}
+double GaNionizationConsts(double front, double top, double Field){ return front * std::exp(top/Field);}
 
-double frontGaN(double a, double b, double Temp){return a * (1 + b * (Temp - 298));}
+double frontGaN(double a, double b, double Temp) {return a * (1 + b * (Temp - 298));}
 
-double topGaN(double c, double d, double Temp){return -1 * c * (1 + d * (Temp - 298));}
+double topGaN(double c, double d, double Temp) {return -1 * c * (1 + d * (Temp - 298));}
 
-double AlGaNConsts(double a, double b, double Field){ return a * std::exp(-b/Field);}
+double AlGaNConsts(double front, double top, double Field)
+{
+    return front * std::exp(-top/Field);
+}
 
-double alpha(double alFrac, double Field, double Temp){
+double alpha(double alFrac, double Field, double Temp) {
 
     //GaN electron constsants
 
