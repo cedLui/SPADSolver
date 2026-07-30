@@ -72,18 +72,21 @@ std::vector<double> guess100(double Width, int Steps, double EField){
 }
 
 //This function will return 2 vectors: 1st a descretized version of P_e, and the 2nd a descretized version of P_h
-std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, double Accuracy, double EField){
+std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accuracy, double EField){
     int LoopCount = 0; //Counts how many iterations
     double StepSize = Width / Steps;
-    double Guess = P_h_0; //Guess for P_h(0)
-    double F = 0; //Value of P_h(Width)
+    double Guess = 1; //Guess for P_h(0)
+    double prevGuess = 1; //Previous guess for P_h(0)
 
-    double previousGuess = 0; //Previous guess & previous value of P_h(Width) for secant method
-    double previousF = 0;
+    double left; //For binary search
+    double right;
 
-    double tempGuess = 0;
+    double PhW = 0; //Current and previous P_h(W)
+    double prevPhW = 0;
 
     bool firstIter = true;
+    bool binarySearch = false;
+
 
     std::vector<std::vector<double>> Pair; //Vector of vectors to return
 
@@ -106,7 +109,7 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, 
     }
 
     //Start shooting method while loop
-    while (Guess >= 0 && Guess <= 1 && Guess != previousGuess){ //All values should be between 0 and 1, since they are probabilities
+    while (Guess > 0){ //All values should be between 0 and 1, since they are probabilities
         LoopCount++; //Update the loop counter
         
         P_h.at(0) = Guess; //Update guess for P_h(0)
@@ -118,32 +121,40 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, 
             P_h.at(i+1) = P_h.at(i) - (1- P_h.at(i)) * betaX(EField, 298) * (P_h.at(i)+P_e.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
         }
 
+        prevPhW = PhW; //Update PhWs
+        PhW = P_h.at(Steps);
+
         if (std::abs(P_h.at(Steps)) < Accuracy){ //If P_h(Width) is close enough to 0, return the lists
             Pair.push_back(P_e);
             Pair.push_back(P_h);
             return Pair;
         }
 
-        F = P_h.at(Steps); //Updates F to the current value of P_h(Width)
 
-        //If we need to fix the guess
         if (firstIter){ //On the first iteration, do not use secant method
             firstIter = false;
-            previousGuess = Guess;
-            previousF = P_h.at(Steps);
-            if (Guess < 0.9){
-                Guess += 0.1;
+            prevGuess = Guess;
+            Guess = Guess - 0.01;
+        } else{
+            if (!binarySearch){ //If the binary search hasn't been activated
+                if (std::abs(PhW + prevPhW) != std::abs(PhW) + std::abs(prevPhW)){ //If there was a sign change, we know the real P_h_0 is between the current and previous guesses
+                    binarySearch = true;
+                    left = Guess;
+                    right = prevGuess;
+                    Guess = (prevGuess + Guess)/2.0;
+                } else{
+                    prevGuess = Guess;
+                    Guess = Guess - 0.01;
+                }
+            } else{ //The binary search has been activated
+                    if (PhW < 0){
+                        left = Guess;
+                        Guess = (left + right)/2.0;
+                    } else{
+                        right = Guess;
+                        Guess = (left + right)/2.0;
+                    }
             }
-            else{
-                Guess -= 0.1;
-            }
-        }
-        //Use secant method otherwise
-        else{
-            tempGuess = Guess;
-            Guess = Guess - (Guess - previousGuess)/(F - previousF) * F;
-            previousGuess = tempGuess;
-            previousF = F;
         }
     }
     //std::cout << "No solution found" << std::endl;
@@ -153,7 +164,7 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, 
 }
 
 int main(){
-    std::vector<std::vector<double>> Pair = avaProb(0.0007, 1000, 0.8, 0.00001, 2000000);
+    std::vector<std::vector<double>> Pair = avaProb(0.00005, 1000, 0.00001, 3000000);
     for (std::vector<double> P_x : Pair){
         std::cout << "List: " << std::endl;
         for (double Step : P_x){
@@ -162,7 +173,7 @@ int main(){
     }
     return 0;
 
-    /*std::vector<double> F = guess100(0.0007, 10000, 2000000);
+    /*std::vector<double> F = guess100(0.00009, 10000, 3000000);
     for (double Fs: F){
         std::cout << Fs << std::endl;
     }*/

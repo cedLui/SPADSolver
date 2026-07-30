@@ -10,4 +10,4 @@ double betaX(double EField, double T);
 
 std::vector<double> guess100(double Width, int Steps, double EField);
 
-std::vector<std::vector<double>> avaProb(double Width, int Steps, double P_h_0, double Accuracy, double EField);
+std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accuracy, double EField);
