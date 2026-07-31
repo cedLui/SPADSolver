@@ -2,13 +2,13 @@
 #include <cmath>
 #include <vector> 
 
-#include "interpolation.cpp"
-#include "avaProb.cpp"
+#include "interpolation.h"
+#include "avaProb.h"
 
 double ReflectProb(double RefInd);
 
 std::vector<double> AbsorptionProbDist(double Width, int Steps, std::vector<double> AlFracProfile, double PhotonEnergy);
 
-std::vector<double> AvaPairProb(double Width, int Steps, double P_h_0, double Accuracy);
+std::vector<double> AvaPairProb(double Width, int Steps, double Accuracy, double EField);
 
-double SPDE(double RefInd, double Width, int Steps, std::vector<double> AlFracProfile, double PhotonEnergy, double P_h_0, double Accuracy);
+double SPDE(double RefInd, double Width, int Steps, std::vector<double> AlFracProfile, double PhotonEnergy, double Accuracy, double EField);

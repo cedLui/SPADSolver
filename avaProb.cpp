@@ -162,23 +162,23 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accurac
     //Pair.push_back(P_h);
     return Pair; //If the while loop ends, return the lists
 }
-
+/*
 int main(){
-   std::vector<std::vector<double>> Pair = avaProb(0.00006, 1000, 0.00001, 3000000);
+   std::vector<std::vector<double>> Pair = avaProb(0.00005, 1000, 0.00001, 2850000);
     for (int i = 0; i <= 1000; i = i + 20){
         std::cout << Pair[1][i] << std::endl;
     }
 
-    /*std::vector<double> F = guess100(0.00009, 10000, 3000000);
+    std::vector<double> F = guess100(0.00009, 10000, 3000000);
     for (double Fs: F){
         std::cout << Fs << std::endl;
-    }*/
+    }
 
-    /*std::vector<std::vector<double>> Pair;
+    std::vector<std::vector<double>> Pair;
     std::vector<double> PeW;
     std::vector<double> Ph0;
     for (double i = 0.000034; i <= 0.00009; i = i + 0.000001){
-        Pair = avaProb(i, 1000, 0.00001, 3000000);
+        Pair = avaProb(i, 10000, 0.00001, 3000000);
         PeW.push_back(Pair[0].back());
         Ph0.push_back(Pair[1][0]);
     }
@@ -190,5 +190,6 @@ int main(){
     std::cout<< "Break" << std::endl;
     for (double K : Ph0){
         std::cout << K << std::endl;
-    }*/
+    }
 }
+*/
