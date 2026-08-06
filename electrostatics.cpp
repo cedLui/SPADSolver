@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
-#include "interpolation.h"
 #include "electrostatics.h"
 
 double heavisideFunc(double position, double shift){

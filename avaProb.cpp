@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector> 
+
 #include "avaProb.h"
 
 //These are the impact ionization coefficients for the material. They are taken from the Maeda paper
@@ -32,7 +33,7 @@ double betaX(double EField, double T){ //In cm^-1. EField is in V/cm, T is in Ke
     return 2.25 * 10000000 * std::exp(-3.26 * 1000000/E);*/
 }
 
-std::vector<double> guess100(double Width, int Steps, double EField){
+std::vector<double> guess100(double Width, int Steps, double EField, std::vector<double> AlFracProf){
     double StepSize = Width/Steps;
 
     std::vector<double> Guesses;
@@ -55,8 +56,8 @@ std::vector<double> guess100(double Width, int Steps, double EField){
         P_h.at(0) = Guess; //Init guess
 
         for (int k = 0 ; k<Steps; k++){
-            P_e.at(k+1) = P_e.at(k) + (1- P_e.at(k)) * alphaX(EField, 298) * (P_e.at(k)+P_h.at(k)-P_e.at(k)*P_h.at(k)) * StepSize;
-            P_h.at(k+1) = P_h.at(k) - (1- P_h.at(k)) * betaX(EField, 298) * (P_h.at(k)+P_e.at(k)-P_e.at(k)*P_h.at(k)) * StepSize;
+            P_e.at(k+1) = P_e.at(k) + (1- P_e.at(k)) * alpha(AlFracProf[k], EField, 298) * (P_e.at(k)+P_h.at(k)-P_e.at(k)*P_h.at(k)) * StepSize;
+            P_h.at(k+1) = P_h.at(k) - (1- P_h.at(k)) * beta(AlFracProf[k], EField, 298) * (P_h.at(k)+P_e.at(k)-P_e.at(k)*P_h.at(k)) * StepSize;
         }
         F.push_back(P_h.at(Steps)); //Creates a vector of all P_h(W), which should be close to zero
     }
@@ -72,7 +73,7 @@ std::vector<double> guess100(double Width, int Steps, double EField){
 }
 
 //This function will return 2 vectors: 1st a descretized version of P_e, and the 2nd a descretized version of P_h
-std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accuracy, double EField){
+std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accuracy, double EField, std::vector<double> AlFracProf){
     int LoopCount = 0; //Counts how many iterations
     double StepSize = Width / Steps;
     double Guess = 1; //Guess for P_h(0)
@@ -117,8 +118,8 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accurac
         
         for (int i = 0 ; i<Steps; i++){
             //Replace alpha/beta with alphaX(i*StepSize) later
-            P_e.at(i+1) = P_e.at(i) + (1- P_e.at(i)) * alphaX(EField, 298) * (P_e.at(i)+P_h.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
-            P_h.at(i+1) = P_h.at(i) - (1- P_h.at(i)) * betaX(EField, 298) * (P_h.at(i)+P_e.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
+            P_e.at(i+1) = P_e.at(i) + (1- P_e.at(i)) * alpha(AlFracProf[i], EField, 298) * (P_e.at(i)+P_h.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
+            P_h.at(i+1) = P_h.at(i) - (1- P_h.at(i)) * beta(AlFracProf[i],EField, 298) * (P_h.at(i)+P_e.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
         }
 
         prevPhW = PhW; //Update PhWs
@@ -162,18 +163,22 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accurac
     //Pair.push_back(P_h);
     return Pair; //If the while loop ends, return the lists
 }
-/*
-int main(){
+
+/*int main(){
    std::vector<std::vector<double>> Pair = avaProb(0.00005, 1000, 0.00001, 2850000);
     for (int i = 0; i <= 1000; i = i + 20){
         std::cout << Pair[1][i] << std::endl;
     }
 
-    std::vector<double> F = guess100(0.00009, 10000, 3000000);
+    std::vector<double> AlFracProf;
+    for (int x = 0; x < 10000; x++){
+        AlFracProf.push_back(0);
+    }
+    std::vector<double> F = guess100(0.00005, 10000, 3000000, AlFracProf);
     for (double Fs: F){
         std::cout << Fs << std::endl;
     }
-
+    
     std::vector<std::vector<double>> Pair;
     std::vector<double> PeW;
     std::vector<double> Ph0;
@@ -191,5 +196,5 @@ int main(){
     for (double K : Ph0){
         std::cout << K << std::endl;
     }
-}
-*/
+}*/
+

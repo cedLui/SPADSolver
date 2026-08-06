@@ -16,7 +16,7 @@ std::vector<double> plot_gamma(double stepSize, double Energy){
 }
 
 int main(){
-    std::vector<double> gammaValues = plot_gamma(0.01, 6);
+    std::vector<double> gammaValues = plot_gamma(0.005, 6);
     for(int i = 0; i < gammaValues.size(); i++){
         std::cout << gammaValues[i] << std::endl;
     }

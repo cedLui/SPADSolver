@@ -2,7 +2,6 @@
 #include <cmath>
 #include <vector> 
 
-#include "interpolation.h"
 #include "avaProb.h"
 
 double ReflectProb(double RefInd);
