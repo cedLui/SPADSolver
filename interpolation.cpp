@@ -64,9 +64,9 @@ double gamma(double AlFrac, double Energy){
     //We are going to a log based interpolation, meaning we interpolate to find an exponent, and use ten as the base
     const double mole_fracs[6] = {0, 0.11, 0.20, 0.38, 0.5, 0.86};
 
-    //Graphs look like they can be separated into 3 lines, so we will need 4 sampled energies/abs coeff for each mole_frac data point
-    const double sampled_energies[6][5] = {{2.25,3.125,3.25,3.5,3.7},{2.625,3.25,3.5,3.7,3.875},{2.25,3,3.5,3.875,4},{2.5,3.5,3.75,4.125,4.3},{2.25,3.5,4,4.625,4.9},{2.875,4,4.75,5.5,5.8}};
-    const double sampled_abs_exps[6][5] = {{1.85,2.4,2.7,4.85,5},{2.4,2.84,3.17,4.85,5},{2,2.78,2.95,4.8,4.903},{2.3,2.95,3.3,4.8,4.907},{1.95,2.48,2.9,4.8,4.95},{2.48,2.85,3.3,4.8,4.981}};
+    //The graphs from the Brunner paper look like they can be separated into 3 lines, so we will need 4 sampled energies/abs coeff for each mole_frac data point
+    const double sampled_energies[6][5] = {{2.25,3.125,3.25,3.5,3.7},{2.625,3.25,3.5,3.7,3.875},{2.25,3,3.5,3.875,4},{2.5,3.5,3.75,4.125,4.3},{2.25,3.5,4,4.625,4.9},{2.875,4,4.75,5.6,5.9}};
+    const double sampled_abs_exps[6][5] = {{1.85,2.4,2.7,4.85,5},{2.4,2.84,3.17,4.86,5},{2,2.78,2.95,4.8,4.903},{2.3,2.95,3.3,4.8,4.907},{1.95,2.48,2.9,4.8,4.95},{2.48,2.85,3.3,4.9,5}};
 
     double gamma_exp1;
     double gamma_exp2;
