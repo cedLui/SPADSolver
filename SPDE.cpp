@@ -40,9 +40,9 @@ std::vector<double> AbsorptionProbDist(double Width, int Steps, std::vector<doub
     return AbsProbDist;
 }
 
-std::vector<double> AvaPairProb(double Width, int Steps, double Accuracy, double EField, std::vector<double> AlFracProf){
+std::vector<double> AvaPairProb(double Width, int Steps, double Accuracy, double Bias, double td, double rho, std::vector<double> AlFracProf){
 
-    std::vector<std::vector<double>> PVec = avaProb(Width, Steps, Accuracy, EField, AlFracProf); //Calculate P_e and P_h
+    std::vector<std::vector<double>> PVec = avaProb(Width, Steps, Accuracy, Bias, td, rho, AlFracProf); //Calculate P_e and P_h
     std::vector<double> P_e = PVec[0];
     std::vector<double> P_h = PVec[1];
     std::vector<double> P_p;
@@ -54,10 +54,10 @@ std::vector<double> AvaPairProb(double Width, int Steps, double Accuracy, double
     return P_p;
 }
 
-double SPDE(double RefInd, double Width, int Steps, std::vector<double> AlFracProfile, double PhotonEnergy, double Accuracy, double EField){
+double SPDE(double RefInd, double Width, int Steps, std::vector<double> AlFracProfile, double PhotonEnergy, double Accuracy, double Bias, double td, double rho){
     double refProb = ReflectProb(RefInd); //Calculate probability of reflection
     std::vector<double> absProbDist = AbsorptionProbDist(Width, Steps, AlFracProfile, PhotonEnergy); //Calculate absorption probability distribution
-    std::vector<double> avaPairProb = AvaPairProb(Width, Steps, Accuracy, EField, AlFracProfile); //Calculate probability of an avalanche at points through the device
+    std::vector<double> avaPairProb = AvaPairProb(Width, Steps, Accuracy, Bias, td, rho, AlFracProfile); //Calculate probability of an avalanche at points through the device
 
     double StepSize = Width/Steps; //Calculate the size of a step
 
@@ -83,8 +83,8 @@ int main(){
         AlFracProf.push_back(0);
     }
 
-    for (double j = 0.000034; j <= 0.00009; j += 0.000001){
-        spde = SPDE(1.0, j, Steps, AlFracProf, 6.0, 0.000001, 3000000);
+    for (double j = 0.00001; j <= 0.00004; j += 0.000001){
+        spde = SPDE(1.0, 0.00005, Steps, AlFracProf, 6.0, 0.000001, 150, j, -182e-8);
         std::cout << spde << std::endl;
     }
     
