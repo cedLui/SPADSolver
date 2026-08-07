@@ -11,13 +11,13 @@ double ReflectProb(double RefInd){
 }
 
 std::vector<double> AbsorptionProbDist(double Width, int Steps, std::vector<double> AlFracProfile, double PhotonEnergy){
-    //Given the composition of the material, determine the Probability distribution for absorption
+    //Given the composition of the material, determine the Probability distribution for absorption (from the right)
     //The size of AlFracProfile should be Steps + 1
     
     double StepSize = Width/Steps;
-    double prevGamma = gamma(AlFracProfile[Steps], PhotonEnergy);
+    double prevGamma = gamma(AlFracProfile[Steps], PhotonEnergy); //Initialize rightmost gamma
     double Gamma;
-    double IntGamma = 0;
+    double IntGamma = 0; //Initialize the integral of gamma
     std::vector<double> AbsProbDist;
 
     for (int k = 0; k < Steps + 1; k++){ //Initialize the probability distribution vectors
@@ -61,7 +61,7 @@ double SPDE(double RefInd, double Width, int Steps, std::vector<double> AlFracPr
 
     double StepSize = Width/Steps; //Calculate the size of a step
 
-    double IntAbsAva = 0.0;
+    double IntAbsAva = 0.0; //Initialize the Integral of P_p * P_abs
 
     double prev = absProbDist[0] * avaPairProb[0]; //For trapazoidal sum
     double curr;
@@ -76,6 +76,7 @@ double SPDE(double RefInd, double Width, int Steps, std::vector<double> AlFracPr
 }
 
 int main(){
+    //Calculate SPDE for a SAM GaN APD with varying location of the delta doped layer
     int Steps = 1000000;
     double spde;
     std::vector<double> AlFracProf;

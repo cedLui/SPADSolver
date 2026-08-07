@@ -5,7 +5,7 @@
 #include "avaProb.h"
 
 
-std::vector<double> guess100(double Width, int Steps, double Bias, double td, double rho, std::vector<double> AlFracProf){
+std::vector<double> guess100(double Width, int Steps, double Bias, double td, double rho, std::vector<double> AlFracProf){ //This function was a debugging function
     double StepSize = Width/Steps;
     double EField = 0; //Initialize Electric Field
 
@@ -51,7 +51,7 @@ std::vector<double> guess100(double Width, int Steps, double Bias, double td, do
 std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accuracy, double Bias, double td, double rho, std::vector<double> AlFracProf){
     int LoopCount = 0; //Counts how many iterations
     double StepSize = Width / Steps;
-    double Guess = 1; //Guess for P_h(0)
+    double Guess = 1; //Guess for P_h(0), intialized at 1
     double prevGuess = 1; //Previous guess for P_h(0)
 
     double EField = 0; //Initialize EField
@@ -93,7 +93,7 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accurac
         P_h.at(0) = Guess; //Update guess for P_h(0)
         P_e.at(0) = 0; //Reinitialize guess for P_e(0)
         
-        for (int i = 0 ; i<Steps; i++){
+        for (int i = 0 ; i<Steps; i++){ //Use FDM to solve equations
             EField = Field(Bias, Width, i*StepSize, td, rho); //Calculate the electric field at this point
 
             P_e.at(i+1) = P_e.at(i) + (1- P_e.at(i)) * alpha(AlFracProf[i], EField, 298) * (P_e.at(i)+P_h.at(i)-P_e.at(i)*P_h.at(i)) * StepSize;
@@ -110,15 +110,15 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accurac
         }
 
 
-        if (firstIter){ 
+        if (firstIter){ //We need to check at least two guesses to even have a chance at starting binary search
             firstIter = false;
             prevGuess = Guess;
-            Guess = Guess - 0.01;
+            Guess = Guess - 0.01; //Move on to the next guess
         } else{
-            if (!binarySearch){ //If the binary search hasn't been activated
+            if (!binarySearch){ //If the binary search hasn't been activated, check to see if it should be
                 if (std::abs(PhW + prevPhW) != std::abs(PhW) + std::abs(prevPhW)){ //If there was a sign change, we know the real P_h_0 is between the current and previous guesses
                     binarySearch = true;
-                    if (PhW < 0){
+                    if (PhW < 0){ //Depending on whether the change in P_h(W) was from - to + or vice versa, the binary search bounds would change
                         left = Guess;
                         right = prevGuess;
                     } else{
@@ -128,7 +128,7 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accurac
                     Guess = (prevGuess + Guess)/2.0;
                 } else{
                     prevGuess = Guess;
-                    Guess = Guess - 0.01;
+                    Guess = Guess - 0.01; //If binary search wasn't activated, continue sweeping
                 }
             } else{ //The binary search has been activated
                     if (PhW < 0){
@@ -147,15 +147,15 @@ std::vector<std::vector<double>> avaProb(double Width, int Steps, double Accurac
     return Pair; //If the while loop ends, return the lists
 }
 
-int main(){
+/*int main(){
     std::vector<double> AlFracProf;
     for (int x = 0; x < 10000; x++){
         AlFracProf.push_back(0);
     }
     
-    std::vector<std::vector<double>> Pair = avaProb(0.00005, 10000, 0.00000001, 150, 0.00001, -182e-9, AlFracProf);
+    std::vector<std::vector<double>> Pair = avaProb(0.00005, 10000, 0.00000001, 150, 0.00001, 0, AlFracProf);
     for (int i = 0; i <= 10000; i = i + 200){
         std::cout << Pair[0][i] << std::endl;
     }
-}
+}*/
 
