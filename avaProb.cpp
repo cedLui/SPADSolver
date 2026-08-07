@@ -4,34 +4,6 @@
 
 #include "avaProb.h"
 
-//These are the impact ionization coefficients for the material. They are taken from the Maeda paper
-double alphaX(double EField, double T){ //In cm^-1. EField is in V/cm, T is in Kelvin
-    double a_n =  2.69e7; // cm^-1
-    double b_n = 2.00e-3; // K^-1
-    double c_n = 2.27e7; // V * cm^-1
-    double d_n = 5.00e-4; // K^-1
-
-    return a_n*(1 + b_n*(T - 298)) * std::exp(-c_n*(1+d_n*(T - 298))/EField);
-
-    /*This was to replicate Oldham's findings
-    double V_break = 27.08;
-    double E = (V_break + DeltaV)/Width; //Avg electric field (testing the constant case)
-    return 3.8 * 1000000 * std::exp(-1.75*1000000/E);*/
-}
-
-double betaX(double EField, double T){ //In cm^-1. EField is in V/cm, T is in Kelvin
-    double a_p =  4.32e6; // cm^-1
-    double b_p = 2.00e-3; // K^-1
-    double c_p = 1.31e7; // V * cm^-1
-    double d_p = 9.00e-4; // K^-1
-
-    return a_p*(1 + b_p*(T - 298)) * std::exp(-c_p*(1+d_p*(T - 298))/EField);
-
-    /*This was to replicate Oldham's findings
-    double V_break = 27.08;
-    double E = (V_break + DeltaV)/Width; //Avg electric field profile
-    return 2.25 * 10000000 * std::exp(-3.26 * 1000000/E);*/
-}
 
 std::vector<double> guess100(double Width, int Steps, double Bias, double td, double rho, std::vector<double> AlFracProf){
     double StepSize = Width/Steps;
